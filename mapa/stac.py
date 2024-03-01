@@ -28,10 +28,6 @@ from mapa_streamlit.io import are_stac_items_planetary_computer
 
 log = logging.getLogger(__name__)
 
-
-
-
-
 def _bbox(coord_list):
     box = []
     for i in (0, 1):
@@ -45,11 +41,8 @@ def _turn_geojson_into_bbox(geojson_bbox: dict) -> List[float]:
     return _bbox(list(geojson.utils.coords(geojson.Polygon(coordinates))))
 
 
-
-
-
 def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype="float32"):
-    paths=[]
+   
     count=len([bands])
     xarray.rio.set_crs(int(xarray.spatial_ref.values))
     tf = xarray.rio.transform()
@@ -73,14 +66,22 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
 
     if count == 1 :
         #bands_str=', '.join(map(str, bands))
-        for arr in xx[bands]:
-            print("~~~~~~~~~~~",arr.time.values)
-            filename=Path(collection+"_"
+        paths=save_tifs_with_one_band(filepath, bands, collection, meta, xx)
+ 
+    print("------------",paths)            
+    return paths
+
+def save_tifs_with_one_band(filepath, bands, collection, meta, xx):
+    paths=[]
+
+    for arr in xx[bands]:
+        print("~~~~~~~~~~~",arr.time.values)
+        filename=Path(collection+"_"
                 + pd.to_datetime(arr.time.values)
                 .to_pydatetime()
                 .strftime("%Y-%m-%d_%H-%M-%S")
                 + ".tif")
-            with rio.open(
+        with rio.open(
                 filepath/filename,
                 "w",
                 **meta,
@@ -88,13 +89,10 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
                 collection= collection,
                 driver="COG",
             ) as dst:
-              
-                dst.write(arr.values, 1)
-                dst.set_band_description(1,bands)
+            dst.write(arr.values, 1)
+            dst.set_band_description(1,bands)
                 
-                paths.append(filepath/filename)
- 
-    print("------------",paths)            
+            paths.append(filepath/filename)
     return paths
                         
 
