@@ -30,6 +30,8 @@ log = logging.getLogger(__name__)
 
 
 
+
+
 def _bbox(coord_list):
     box = []
     for i in (0, 1):
@@ -41,6 +43,9 @@ def _bbox(coord_list):
 def _turn_geojson_into_bbox(geojson_bbox: dict) -> List[float]:
     coordinates = geojson_bbox["coordinates"]
     return _bbox(list(geojson.utils.coords(geojson.Polygon(coordinates))))
+
+
+
 
 
 def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype="float32"):
@@ -67,7 +72,7 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
     print(len([bands]))
 
     if count == 1 :
-        
+        #bands_str=', '.join(map(str, bands))
         for arr in xx[bands]:
             print("~~~~~~~~~~~",arr.time.values)
             filename=Path(collection+"_"
@@ -91,8 +96,14 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
  
     print("------------",paths)            
     return paths
+                        
 
-def serach_stac_and_load_xarray(user_defined_collection, geojson, bbox):
+def fetch_stac_items_for_bbox(
+    user_defined_bands:list, user_defined_collection:str, geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
+) -> List[Path]:
+    
+    bbox = _turn_geojson_into_bbox(geojson)
+    
     catalog = pystac_client.Client.open(
         conf.PLANETARY_COMPUTER_API_URL,
         modifier=planetary_computer.sign_inplace,
@@ -101,7 +112,7 @@ def serach_stac_and_load_xarray(user_defined_collection, geojson, bbox):
     search = catalog.search(
         collections=[user_defined_collection],  # landsat-c2-l2, sentinel-2-l2a
         bbox=bbox,
-        datetime="2023-10-20/2023-10-22",
+        datetime="2023-10-20/2023-10-28",
         query={
             "eo:cloud_cover": {"lt": 20},
         },
@@ -122,17 +133,8 @@ def serach_stac_and_load_xarray(user_defined_collection, geojson, bbox):
             fail_on_error=False,
             no_data=0
         )
-        
-    return items,xx              
-
-def fetch_stac_items_for_bbox(
-    user_defined_bands:list, user_defined_collection:str, geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
-) -> List[Path]:
     
-    bbox = _turn_geojson_into_bbox(geojson)
-    
-    items, xx = serach_stac_and_load_xarray(user_defined_collection, geojson, bbox)
-    
+   
     n = len(items)
     if progress_bar:
         progress_bar.steps += n
@@ -140,10 +142,11 @@ def fetch_stac_items_for_bbox(
         log.info(f"⬇️  fetching {n} stac items...")
         
         files=save_images_from_xarr(xx,cache_dir,user_defined_bands,user_defined_collection)
+        #for cnt, item in enumerate(items):
+            #files.append(_get_tiff_file(item, allow_caching, cache_dir, cnt + 1, n))
         if progress_bar:
             progress_bar.step()
+        print("######",files)
         return files
     else:
         raise NoSTACItemFound("Could not find the desired STAC item for the given bounding box.")
-
-

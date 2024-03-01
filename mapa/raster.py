@@ -80,19 +80,7 @@ def _get_coordinate_of_pixel(row: int, col: int, tiff: DatasetReader) -> Tuple[f
     return (y, x)
 
 
-# def determine_elevation_scale(tiff: DatasetReader, model_size: int) -> float:
-#     array = tiff.read()[0, :, :]
-#     _, cols = array.shape
 
-#     # get lat lon coordinate of top left and top right pixel
-#     top_left_coor = _get_coordinate_of_pixel(0, 0, tiff)
-#     top_right_coor = _get_coordinate_of_pixel(0, cols, tiff)
-#     # get distance in meter between the two coordinates
-#     distance = haversine(top_left_coor, top_right_coor, unit="m")
-
-#     # to find out what 1 meter in reality corresponds to in the model, we need to divide the model size by the distance
-#     one_meter_in_model = model_size / distance
-#     return one_meter_in_model
 
 
 def merge_tiffs(tiffs: List[Path], bbox_hash: str, cache_dir: Path) -> Path:
