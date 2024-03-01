@@ -12,7 +12,7 @@ from mapa.caching import get_hash_of_geojson, tiff_for_bbox_is_cached
 from mapa.raster import (
     clip_tiff_to_bbox,
     cut_array_to_square,
-    determine_elevation_scale,
+    #determine_elevation_scale,
     merge_tiffs,
     remove_empty_first_and_last_rows_and_cols,
     tiff_to_array,
@@ -72,73 +72,77 @@ def _get_desired_size(array: np.ndarray, x: float, y: float, ensure_squared: boo
         return ModelSize(x=x, y=y / rows * cols)
 
 
-def convert_tiff_to_stl(
-    input_file: str,
-    as_ascii: bool,
-    model_size: int,
-    output_file: Union[str, None],
-    max_res: bool,
-    z_offset: Union[None, float],
-    z_scale: float,
-    ensure_squared: bool = False,
-) -> Path:
-    output_file = verify_input_and_output_are_valid(input=input_file, output=output_file)
+# def convert_tiff_to_stl(
+#     input_file: str,
+#     as_ascii: bool,
+#     model_size: int,
+#     output_file: Union[str, None],
+#     max_res: bool,
+#     z_offset: Union[None, float],
+#     z_scale: float,
+#     ensure_squared: bool = False,
+# ) -> Path:
+#     output_file = verify_input_and_output_are_valid(input=input_file, output=output_file)
 
-    tiff = rio.open(input_file)
-    elevation_scale = determine_elevation_scale(tiff, model_size)
-    array = tiff_to_array(tiff)
+#     tiff = rio.open(input_file)
+#     elevation_scale = determine_elevation_scale(tiff, model_size)
+#     array = tiff_to_array(tiff)
 
-    if ensure_squared:
-        array = cut_array_to_square(array)
-    desired_size = _get_desired_size(array=array, x=model_size, y=model_size, ensure_squared=ensure_squared)
+#     if ensure_squared:
+#         array = cut_array_to_square(array)
+#     desired_size = _get_desired_size(array=array, x=model_size, y=model_size, ensure_squared=ensure_squared)
 
-    return convert_array_to_stl(
-        array=array,
-        as_ascii=as_ascii,
-        desired_size=desired_size,
-        max_res=max_res,
-        z_offset=z_offset,
-        z_scale=z_scale,
-        elevation_scale=elevation_scale,
-        output_file=output_file,
-    )
-
-
-def _fetch_merge_and_clip_tiffs(
-    bbox_geojson: dict,
-    bbox_hash: str,
-    allow_caching: bool,
-    cache_dir: Path,
-    progress_bar: Union[None, ProgressBar] = None,
-) -> Path:
-    tiffs = fetch_stac_items_for_bbox(bbox_geojson, allow_caching, cache_dir, progress_bar)
-    if len(tiffs) > 1:
-        merged_tiff = merge_tiffs(tiffs, bbox_hash, cache_dir)
-    else:
-        merged_tiff = tiffs[0]
-    return clip_tiff_to_bbox(merged_tiff, bbox_geojson, bbox_hash, cache_dir)
+#     return convert_array_to_stl(
+#         array=array,
+#         as_ascii=as_ascii,
+#         desired_size=desired_size,
+#         max_res=max_res,
+#         z_offset=z_offset,
+#         z_scale=z_scale,
+#         elevation_scale=elevation_scale,
+#         output_file=output_file,
+#     )
 
 
-def _get_tiff_for_bbox(
-    bbox_geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
-) -> Path:
-    bbox_hash = get_hash_of_geojson(bbox_geojson)
-    if tiff_for_bbox_is_cached(bbox_hash, cache_dir) and allow_caching:
-        log.info("🚀  using cached tiff!")
-        return path_to_clipped_tiff(bbox_hash, cache_dir)
-    else:
-        return _fetch_merge_and_clip_tiffs(bbox_geojson, bbox_hash, allow_caching, cache_dir, progress_bar)
+# def _fetch_merge_and_clip_tiffs(
+#     user_defined_collection:str,
+#     user_defined_bands:list,
+#     bbox_geojson: dict,
+#     bbox_hash: str,
+#     allow_caching: bool,
+#     cache_dir: Path,
+#     progress_bar: Union[None, ProgressBar] = None,
+# ) -> Path:
+#     tiffs = fetch_stac_items_for_bbox(user_defined_bands, user_defined_collection, bbox_geojson, allow_caching, cache_dir, progress_bar)
+#     if len(tiffs) > 1:
+#         merged_tiff = merge_tiffs(tiffs, bbox_hash, cache_dir)
+#     else:
+#         merged_tiff = tiffs[0]
+#     return clip_tiff_to_bbox(merged_tiff, bbox_geojson, bbox_hash, cache_dir)
 
 
-def convert_bbox_to_stl(
+# def _get_tiff_for_bbox(
+#     user_defined_collection:str ,user_defined_bands:list,bbox_geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
+# ) -> Path:
+#     bbox_hash = get_hash_of_geojson(bbox_geojson)
+#     if tiff_for_bbox_is_cached(bbox_hash, cache_dir) and allow_caching:
+#         log.info("🚀  using cached tiff!")
+#         return path_to_clipped_tiff(bbox_hash, cache_dir)
+#     else:
+#         return _fetch_merge_and_clip_tiffs(user_defined_collection, user_defined_bands,bbox_geojson, bbox_hash, allow_caching, cache_dir, progress_bar)
+
+
+def convert_bbox_to_tif(
+    user_defined_collection:str,
+    user_defined_bands:list,
     bbox_geometry: dict,
-    as_ascii: bool = False,
-    model_size: int = 200,
+    #as_ascii: bool = False,
+    #model_size: int = 200,
     output_file: str = "output",
-    max_res: bool = False,
-    z_offset: Union[None, float] = 0.0,
-    z_scale: float = 1.0,
-    ensure_squared: bool = False,
+    #max_res: bool = False,
+    #z_offset: Union[None, float] = 0.0,
+    #z_scale: float = 1.0,
+    #ensure_squared: bool = False,
     split_area_in_tiles: str = "1x1",
     compress: bool = True,
     allow_caching: bool = True,
@@ -211,38 +215,46 @@ def convert_bbox_to_stl(
         steps = tiles.x * tiles.y * 2 if compress else tiles.x * tiles.y
         progress_bar = ProgressBar(progress_bar=progress_bar, steps=steps)
 
-    path_to_tiff = _get_tiff_for_bbox(bbox_geometry, allow_caching, Path(cache_dir), progress_bar)
-    tiff = rio.open(path_to_tiff)
-    elevation_scale = determine_elevation_scale(tiff, model_size)
-    array = tiff_to_array(tiff)
-    if ensure_squared:
-        array = cut_array_to_square(array)
+    list_paths_to_tiffs=fetch_stac_items_for_bbox(user_defined_bands,
+    user_defined_collection,
+    bbox_geometry,
+    allow_caching,
+    cache_dir,
+    progress_bar)    
+    print("######################",list_paths_to_tiffs)
 
-    desired_size = _get_desired_size(
-        array=array,
-        x=model_size / tiles.x,
-        y=model_size / tiles.y,
-        ensure_squared=ensure_squared,
-    )
+    #path_to_tiff = _get_tiff_for_bbox(user_defined_collection,user_defined_bands, bbox_geometry, allow_caching, Path(cache_dir), progress_bar)
+    #tiff = rio.open(path_to_tiff)
+    # #elevation_scale = determine_elevation_scale(tiff, model_size)
+    # array = tiff_to_array(tiff)
+    # if ensure_squared:
+    #     array = cut_array_to_square(array)
 
-    tiled_arrays = split_array_into_tiles(array, tiles)
-    stl_files = []
-    for i, array in enumerate(tiled_arrays):
-        stl_files.append(
-            convert_array_to_stl(
-                array=array,
-                as_ascii=as_ascii,
-                desired_size=desired_size,
-                max_res=max_res,
-                z_offset=z_offset,
-                z_scale=z_scale,
-                elevation_scale=elevation_scale,
-                output_file=f"{output_file}_{i+1}.stl" if len(tiled_arrays) > 1 else f"{output_file}.stl",
-            )
-        )
-        if progress_bar:
-            progress_bar.step()
+    # desired_size = _get_desired_size(
+    #     array=array,
+    #     x=model_size / tiles.x,
+    #     y=model_size / tiles.y,
+    #     ensure_squared=ensure_squared,
+    # )
+
+    # tiled_arrays = split_array_into_tiles(array, tiles)
+    # stl_files = []
+    # for i, array in enumerate(tiled_arrays):
+    #     stl_files.append(
+    #         convert_array_to_stl(
+    #             array=array,
+    #             as_ascii=as_ascii,
+    #             desired_size=desired_size,
+    #             max_res=max_res,
+    #             z_offset=z_offset,
+    #             z_scale=z_scale,
+    #             elevation_scale=elevation_scale,
+    #             output_file=f"{output_file}_{i+1}.stl" if len(tiled_arrays) > 1 else f"{output_file}.stl",
+    #         )
+    #     )
+    if progress_bar:
+        progress_bar.step()
     if compress:
-        return create_zip_archive(files=stl_files, output_file=f"{output_file}.zip", progress_bar=progress_bar)
+        return create_zip_archive(files=list_paths_to_tiffs, output_file=f"{output_file}.zip", progress_bar=progress_bar)
     else:
-        return stl_files[0] if len(stl_files) == 1 else stl_files
+        return list_paths_to_tiffs[0] if len(list_paths_to_tiffs) == 1 else list_paths_to_tiffs

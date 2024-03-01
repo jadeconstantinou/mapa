@@ -14,4 +14,4 @@ DEMO_TIFF_PATH = Path(__file__).parent.parent / "tests" / "tiff" / "hawaii.tiff"
 
 # stac catalogue
 PLANETARY_COMPUTER_API_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
-PLANETARY_COMPUTER_COLLECTION = "alos-dem"
+#PLANETARY_COMPUTER_COLLECTION = "alos-dem"
