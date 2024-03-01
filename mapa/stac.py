@@ -29,10 +29,6 @@ from mapa_streamlit.io import are_stac_items_planetary_computer
 log = logging.getLogger(__name__)
 
 
-# def _download_file(url: str, local_file: Path) -> Path:
-#     request.urlretrieve(url, local_file)
-#     return local_file
-
 
 def _bbox(coord_list):
     box = []
@@ -45,16 +41,6 @@ def _bbox(coord_list):
 def _turn_geojson_into_bbox(geojson_bbox: dict) -> List[float]:
     coordinates = geojson_bbox["coordinates"]
     return _bbox(list(geojson.utils.coords(geojson.Polygon(coordinates))))
-
-
-# def _get_tiff_file(stac_item: Item, allow_caching: bool, cache_dir: Path, count: int, max: int) -> Path:
-#     tiff = cache_dir / f"{stac_item.id}.tiff"
-#     if tiff.is_file() and allow_caching:
-#         log.info(f"🚀  {count}/{max} using cached stac item {stac_item.id}")
-#         return tiff
-#     else:
-#         log.info(f"🏞  {count}/{max} downloading stac item {stac_item.id}")
-#         return _download_file(stac_item.assets["data"].href, tiff)
 
 
 def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype="float32"):
@@ -81,7 +67,7 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
     print(len([bands]))
 
     if count == 1 :
-        #bands_str=', '.join(map(str, bands))
+        
         for arr in xx[bands]:
             print("~~~~~~~~~~~",arr.time.values)
             filename=Path(collection+"_"
@@ -105,19 +91,8 @@ def save_images_from_xarr(xarray, filepath, bands:str, collection:str, datatype=
  
     print("------------",paths)            
     return paths
-                        
 
-def fetch_stac_items_for_bbox(
-    user_defined_bands:list, user_defined_collection:str, geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
-) -> List[Path]:
-    
-    bbox = _turn_geojson_into_bbox(geojson)
-    
-    
-    # client = Client.open(conf.PLANETARY_COMPUTER_API_URL, ignore_conformance=True)
-    # search = client.search(collections= user_defined_collection, bbox=bbox)
-    # items = list(search.items())
-    
+def serach_stac_and_load_xarray(user_defined_collection, geojson, bbox):
     catalog = pystac_client.Client.open(
         conf.PLANETARY_COMPUTER_API_URL,
         modifier=planetary_computer.sign_inplace,
@@ -126,7 +101,7 @@ def fetch_stac_items_for_bbox(
     search = catalog.search(
         collections=[user_defined_collection],  # landsat-c2-l2, sentinel-2-l2a
         bbox=bbox,
-        datetime="2023-10-20/2023-10-28",
+        datetime="2023-10-20/2023-10-22",
         query={
             "eo:cloud_cover": {"lt": 20},
         },
@@ -147,8 +122,17 @@ def fetch_stac_items_for_bbox(
             fail_on_error=False,
             no_data=0
         )
+        
+    return items,xx              
+
+def fetch_stac_items_for_bbox(
+    user_defined_bands:list, user_defined_collection:str, geojson: dict, allow_caching: bool, cache_dir: Path, progress_bar: Union[None, ProgressBar] = None
+) -> List[Path]:
     
-   
+    bbox = _turn_geojson_into_bbox(geojson)
+    
+    items, xx = serach_stac_and_load_xarray(user_defined_collection, geojson, bbox)
+    
     n = len(items)
     if progress_bar:
         progress_bar.steps += n
@@ -156,11 +140,10 @@ def fetch_stac_items_for_bbox(
         log.info(f"⬇️  fetching {n} stac items...")
         
         files=save_images_from_xarr(xx,cache_dir,user_defined_bands,user_defined_collection)
-        #for cnt, item in enumerate(items):
-            #files.append(_get_tiff_file(item, allow_caching, cache_dir, cnt + 1, n))
         if progress_bar:
             progress_bar.step()
-        print("######",files)
         return files
     else:
         raise NoSTACItemFound("Could not find the desired STAC item for the given bounding box.")
+
+
