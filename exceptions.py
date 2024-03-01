@@ -1,0 +1,2 @@
+class NoSTACItemFound(Exception):
+    pass
